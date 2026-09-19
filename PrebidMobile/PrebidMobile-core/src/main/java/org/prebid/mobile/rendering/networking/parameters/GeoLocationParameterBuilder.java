@@ -84,9 +84,42 @@ public class GeoLocationParameterBuilder extends ParameterBuilder {
                     geo.country = list.get(0).getCountryCode();
                 }
 
+                // OpenRTB device.geo.country is ISO-3166-1 alpha-3, but the
+                // telephony (getSimCountryIso / getNetworkCountryIso) and Geocoder
+                // (Address.getCountryCode) sources return alpha-2 (e.g. "US"); only
+                // the Locale.getISO3Country() fallback was already alpha-3. Normalize
+                // to alpha-3 so alpha-2 never leaks to the wire. Idempotent for
+                // values already alpha-3.
+                geo.country = toAlpha3(geo.country);
+
             }catch(Throwable thr){
                 LogUtil.debug("Error getting country code");
             }
+        }
+    }
+
+    /**
+     * Convert an ISO-3166-1 alpha-2 country code to alpha-3 (e.g. "US" -> "USA",
+     * "GB" -> "GBR") via the JDK's own ISO tables — full coverage. Returns a value
+     * already alpha-3 unchanged, and "" for empty / unknown / unconvertible input
+     * (so the caller emits no country rather than a malformed one).
+     */
+    static String toAlpha3(String country) {
+        if (country == null) {
+            return "";
+        }
+        String c = country.trim().toUpperCase(Locale.ROOT);
+        if (c.length() == 3) {
+            return c; // already alpha-3
+        }
+        if (c.length() != 2) {
+            return "";
+        }
+        try {
+            String iso3 = new Locale("", c).getISO3Country();
+            return iso3 != null ? iso3 : "";
+        } catch (Throwable thr) {
+            return ""; // MissingResourceException for an unknown alpha-2
         }
     }
 
