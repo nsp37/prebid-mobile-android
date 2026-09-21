@@ -17,6 +17,7 @@
 package org.prebid.mobile.rendering.networking.parameters;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
@@ -27,6 +28,7 @@ import android.location.LocationManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.prebid.mobile.GeoCountryFormat;
 import org.prebid.mobile.PrebidMobile;
 import org.prebid.mobile.TargetingParams;
 import org.prebid.mobile.reflection.sdk.ManagersResolverReflection;
@@ -143,11 +145,27 @@ public class GeoLocationParameterBuilderTest {
         assertEquals("USA", GeoLocationParameterBuilder.toAlpha3("us"));
         assertEquals("GBR", GeoLocationParameterBuilder.toAlpha3("GB"));
         assertEquals("CAN", GeoLocationParameterBuilder.toAlpha3("CA"));
-        // Already alpha-3 -> unchanged (idempotent).
+        // Already valid alpha-3 -> unchanged (idempotent).
         assertEquals("USA", GeoLocationParameterBuilder.toAlpha3("USA"));
-        // Empty / null / unknown -> "" so no malformed country is emitted.
-        assertEquals("", GeoLocationParameterBuilder.toAlpha3(""));
-        assertEquals("", GeoLocationParameterBuilder.toAlpha3(null));
-        assertEquals("", GeoLocationParameterBuilder.toAlpha3("ZZ"));
+        // Empty / null / unknown / non-ISO -> null so the field is omitted (not
+        // sent as "" or a malformed value).
+        assertNull(GeoLocationParameterBuilder.toAlpha3(""));
+        assertNull(GeoLocationParameterBuilder.toAlpha3(null));
+        assertNull(GeoLocationParameterBuilder.toAlpha3("ZZ"));   // unknown alpha-2
+        assertNull(GeoLocationParameterBuilder.toAlpha3("419"));  // UN M.49, not ISO alpha-3
+        assertNull(GeoLocationParameterBuilder.toAlpha3("XK"));   // Kosovo — not in the JDK ISO tables
+    }
+
+    @Test
+    public void geoCountryFormat_flagSetGetAndNullResetsToDefault() {
+        try {
+            PrebidMobile.setGeoCountryFormat(GeoCountryFormat.ALPHA3);
+            assertEquals(GeoCountryFormat.ALPHA3, PrebidMobile.getGeoCountryFormat());
+            // null resets to the default (alpha-2, today's behavior).
+            PrebidMobile.setGeoCountryFormat(null);
+            assertEquals(GeoCountryFormat.ALPHA2, PrebidMobile.getGeoCountryFormat());
+        } finally {
+            PrebidMobile.setGeoCountryFormat(GeoCountryFormat.ALPHA2);
+        }
     }
 }

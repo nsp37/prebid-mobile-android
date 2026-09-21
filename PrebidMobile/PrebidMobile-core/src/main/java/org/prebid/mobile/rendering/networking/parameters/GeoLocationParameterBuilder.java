@@ -102,28 +102,48 @@ public class GeoLocationParameterBuilder extends ParameterBuilder {
         }
     }
 
+    // The valid ISO-3166-1 alpha-3 set, derived from the JDK's own ISO tables.
+    // Used to reject inputs that are 3 chars but not real alpha-3 (e.g. the UN
+    // M.49 code "419" a Latin-American-Spanish locale can produce).
+    private static final java.util.Set<String> ISO3_COUNTRIES = buildIso3Countries();
+
+    private static java.util.Set<String> buildIso3Countries() {
+        java.util.Set<String> set = new java.util.HashSet<>();
+        for (String cc : Locale.getISOCountries()) {
+            try {
+                String iso3 = new Locale("", cc).getISO3Country();
+                if (iso3 != null && iso3.length() == 3) {
+                    set.add(iso3);
+                }
+            } catch (Throwable ignored) { }
+        }
+        return set;
+    }
+
     /**
      * Convert an ISO-3166-1 alpha-2 country code to alpha-3 (e.g. "US" -> "USA",
      * "GB" -> "GBR") via the JDK's own ISO tables — full coverage. Returns a value
-     * already alpha-3 unchanged, and "" for empty / unknown / unconvertible input
-     * (so the caller emits no country rather than a malformed one).
+     * that is already valid alpha-3 unchanged, and {@code null} for empty /
+     * unknown / unconvertible input (including 3-char non-ISO codes like "419" and
+     * codes the JDK can't map such as "XK") so the caller omits the field rather
+     * than sending a malformed or empty one.
      */
     static String toAlpha3(String country) {
         if (country == null) {
-            return "";
+            return null;
         }
         String c = country.trim().toUpperCase(Locale.ROOT);
         if (c.length() == 3) {
-            return c; // already alpha-3
+            return ISO3_COUNTRIES.contains(c) ? c : null; // already alpha-3, but validate
         }
         if (c.length() != 2) {
-            return "";
+            return null;
         }
         try {
             String iso3 = new Locale("", c).getISO3Country();
-            return iso3 != null ? iso3 : "";
+            return (iso3 != null && ISO3_COUNTRIES.contains(iso3)) ? iso3 : null;
         } catch (Throwable thr) {
-            return ""; // MissingResourceException for an unknown alpha-2
+            return null; // MissingResourceException for an unknown alpha-2
         }
     }
 
@@ -131,8 +151,10 @@ public class GeoLocationParameterBuilder extends ParameterBuilder {
         TelephonyManager tm = (TelephonyManager) ctx.getSystemService(Context.TELEPHONY_SERVICE);
 
         if(tm != null) {
-            String simCountry = tm.getSimCountryIso().toUpperCase();
-            String networkCountry = tm.getNetworkCountryIso().toUpperCase();
+            // Locale.ROOT: default-locale upper-casing corrupts codes on Turkish/
+            // Azerbaijani devices ("it" -> "İT"), breaking IT/IN/ID/IE/IL/... .
+            String simCountry = tm.getSimCountryIso().toUpperCase(Locale.ROOT);
+            String networkCountry = tm.getNetworkCountryIso().toUpperCase(Locale.ROOT);
 
             if (!simCountry.equals("")) {
                 return simCountry;
