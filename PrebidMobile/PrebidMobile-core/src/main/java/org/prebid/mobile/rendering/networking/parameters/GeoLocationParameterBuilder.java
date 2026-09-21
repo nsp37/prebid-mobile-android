@@ -21,6 +21,7 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.telephony.TelephonyManager;
 
+import org.prebid.mobile.GeoCountryFormat;
 import org.prebid.mobile.LogUtil;
 import org.prebid.mobile.PrebidMobile;
 import org.prebid.mobile.TargetingParams;
@@ -87,10 +88,13 @@ public class GeoLocationParameterBuilder extends ParameterBuilder {
                 // OpenRTB device.geo.country is ISO-3166-1 alpha-3, but the
                 // telephony (getSimCountryIso / getNetworkCountryIso) and Geocoder
                 // (Address.getCountryCode) sources return alpha-2 (e.g. "US"); only
-                // the Locale.getISO3Country() fallback was already alpha-3. Normalize
-                // to alpha-3 so alpha-2 never leaks to the wire. Idempotent for
-                // values already alpha-3.
-                geo.country = toAlpha3(geo.country);
+                // the Locale.getISO3Country() fallback was already alpha-3.
+                // Opt-in via PrebidMobile.setGeoCountryFormat(ALPHA3) so we don't
+                // silently change existing behavior; defaults to alpha-2 (planned
+                // to default to alpha-3 in 4.0). Idempotent for values already alpha-3.
+                if (PrebidMobile.getGeoCountryFormat() == GeoCountryFormat.ALPHA3) {
+                    geo.country = toAlpha3(geo.country);
+                }
 
             }catch(Throwable thr){
                 LogUtil.debug("Error getting country code");
