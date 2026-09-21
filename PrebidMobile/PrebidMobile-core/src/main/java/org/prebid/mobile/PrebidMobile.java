@@ -258,13 +258,14 @@ public class PrebidMobile {
      * set {@link GeoCountryFormat#ALPHA3} to send the spec-compliant format. The
      * default is planned to change to {@code ALPHA3} in Prebid SDK 4.0.
      */
-    public static void setGeoCountryFormat(GeoCountryFormat format) {
+    public static void setGeoCountryFormat(@Nullable GeoCountryFormat format) {
         PrebidMobile.geoCountryFormat = (format != null) ? format : GeoCountryFormat.ALPHA2;
     }
 
     /**
      * {@link #setGeoCountryFormat(GeoCountryFormat)}
      */
+    @NonNull
     public static GeoCountryFormat getGeoCountryFormat() {
         return geoCountryFormat;
     }
