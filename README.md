@@ -1,5 +1,3 @@
-[![Build Status](https://api.travis-ci.org/prebid/prebid-mobile-android.svg?branch=master)](https://travis-ci.org/prebid/prebid-mobile-android)
-
 # Prebid Mobile Android SDK
 
 To work with Prebid Mobile, you will need access to a Prebid Server.
@@ -12,7 +10,7 @@ Visit the [Prebid documentation](https://docs.prebid.org/prebid-mobile/pbm-api/a
 Easily include the Prebid Mobile SDK using Maven. Simply add this line to your gradle dependencies:
 
 ```
-implementation 'org.prebid:prebid-mobile-sdk:3.3.3'
+implementation 'org.prebid:prebid-mobile-sdk:3.3.4'
 ```
 
 ## Build from source
