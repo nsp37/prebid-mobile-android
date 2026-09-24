@@ -455,10 +455,16 @@ public class BannerView extends FrameLayout {
     /**
      * Sets the {@link VideoParameters} used when requesting video demand in a
      * multiformat {@link BannerView} (see {@link #setAdUnitFormats(EnumSet)}).
+     * <p>
+     * Once video parameters are set, the request builder uses them instead of the rendering
+     * defaults. Defaults such as {@code playbackend}, the interstitial {@code plcmt}, and the
+     * SDK default mimes, protocols and linearity are no longer applied, so set every field the
+     * request needs. Passing null restores the default behavior.
      *
-     * @param videoParameters the video parameters to apply to the request
+     * @param videoParameters the video parameters to apply to the request, or null to use the
+     *                        rendering defaults
      */
-    public void setVideoParameters(VideoParameters videoParameters) {
+    public void setVideoParameters(@Nullable VideoParameters videoParameters) {
         adUnitConfig.setVideoParameters(videoParameters);
     }
 
