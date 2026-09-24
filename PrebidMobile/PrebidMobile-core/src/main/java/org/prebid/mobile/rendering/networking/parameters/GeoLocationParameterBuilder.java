@@ -75,8 +75,15 @@ public class GeoLocationParameterBuilder extends ParameterBuilder {
                 geo.country = getTelephonyCountry(PrebidContextHolder.getContext());
 
                 if(geo.country.equals("")){
-                    Locale locale = PrebidContextHolder.getContext().getResources().getConfiguration().locale;
-                    geo.country = locale.getISO3Country();
+                    // getISO3Country() throws MissingResourceException for a locale
+                    // country with no alpha-3 mapping. Catch it here so the Geocoder
+                    // fallback and the alpha-3 conversion below still run.
+                    try {
+                        Locale locale = PrebidContextHolder.getContext().getResources().getConfiguration().locale;
+                        geo.country = locale.getISO3Country();
+                    } catch (Throwable thr) {
+                        geo.country = "";
+                    }
                 }
 
                 if(geo.country.equals("")){
@@ -98,6 +105,11 @@ public class GeoLocationParameterBuilder extends ParameterBuilder {
 
             }catch(Throwable thr){
                 LogUtil.debug("Error getting country code");
+            }
+
+            // Never send an empty device.geo.country; omit the field instead.
+            if ("".equals(geo.country)) {
+                geo.country = null;
             }
         }
     }

@@ -24,6 +24,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
+import android.telephony.TelephonyManager;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,10 +36,12 @@ import org.prebid.mobile.reflection.sdk.ManagersResolverReflection;
 import org.prebid.mobile.rendering.models.openrtb.BidRequest;
 import org.prebid.mobile.rendering.models.openrtb.bidRequests.devices.Geo;
 import org.prebid.mobile.rendering.sdk.ManagersResolver;
+import org.prebid.mobile.rendering.sdk.PrebidContextHolder;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.shadows.ShadowActivity;
 import org.robolectric.shadows.ShadowLocationManager;
+import org.robolectric.shadows.ShadowTelephonyManager;
 
 @RunWith(RobolectricTestRunner.class)
 public class GeoLocationParameterBuilderTest {
@@ -46,10 +49,12 @@ public class GeoLocationParameterBuilderTest {
     private final Double LATITUDE = 1.0;
     private final Double LONGITUDE = -1.0;
 
+    private Activity robolectricActivity;
+
     @Before
     public void setUp() throws Exception {
         PrebidMobile.setShareGeoLocation(true);
-        Activity robolectricActivity = Robolectric.buildActivity(Activity.class).create().get();
+        robolectricActivity = Robolectric.buildActivity(Activity.class).create().get();
         ShadowActivity shadowActivity = shadowOf(robolectricActivity);
         shadowActivity.grantPermissions("android.permission.ACCESS_FINE_LOCATION");
 
@@ -167,5 +172,47 @@ public class GeoLocationParameterBuilderTest {
         } finally {
             PrebidMobile.setGeoCountryFormat(GeoCountryFormat.ALPHA2);
         }
+    }
+
+    @Test
+    public void testCountryDefaultFormat_sendsAlpha2() throws Exception {
+        try {
+            setUpTelephonyCountry("us");
+
+            GeoLocationParameterBuilder builder = new GeoLocationParameterBuilder();
+            AdRequestInput adRequestInput = new AdRequestInput();
+            builder.appendBuilderParameters(adRequestInput);
+
+            assertEquals("US", adRequestInput.getBidRequest().getDevice().getGeo().country);
+        } finally {
+            PrebidContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    public void testCountryAlpha3Format_sendsAlpha3() throws Exception {
+        try {
+            PrebidMobile.setGeoCountryFormat(GeoCountryFormat.ALPHA3);
+            setUpTelephonyCountry("us");
+
+            GeoLocationParameterBuilder builder = new GeoLocationParameterBuilder();
+            AdRequestInput adRequestInput = new AdRequestInput();
+            builder.appendBuilderParameters(adRequestInput);
+
+            assertEquals("USA", adRequestInput.getBidRequest().getDevice().getGeo().country);
+        } finally {
+            PrebidMobile.setGeoCountryFormat(GeoCountryFormat.ALPHA2);
+            PrebidContextHolder.clearContext();
+        }
+    }
+
+    private void setUpTelephonyCountry(String countryIso) {
+        // The builder reads TelephonyManager from PrebidContextHolder.getContext(),
+        // so shadow the instance of that same context.
+        PrebidContextHolder.setContext(robolectricActivity);
+        TelephonyManager telephonyManager = (TelephonyManager) robolectricActivity.getSystemService(Context.TELEPHONY_SERVICE);
+        ShadowTelephonyManager shadowTelephonyManager = shadowOf(telephonyManager);
+        shadowTelephonyManager.setSimCountryIso(countryIso);
+        shadowTelephonyManager.setNetworkCountryIso(countryIso);
     }
 }
