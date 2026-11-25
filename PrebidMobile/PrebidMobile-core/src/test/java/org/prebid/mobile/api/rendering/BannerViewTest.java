@@ -29,6 +29,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.prebid.mobile.AdSize;
+import org.prebid.mobile.VideoParameters;
 import org.prebid.mobile.api.data.AdFormat;
 import org.prebid.mobile.api.data.AdUnitFormat;
 import org.prebid.mobile.api.data.VideoPlacementType;
@@ -54,6 +55,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -251,6 +253,34 @@ public class BannerViewTest {
 
         bannerView.setAdUnitFormats(EnumSet.noneOf(AdUnitFormat.class));
         assertEquals(EnumSet.of(AdFormat.BANNER, AdFormat.VAST), getAdUnitConfig().getAdFormats());
+    }
+
+    @Test
+    public void setVideoParameters_reachesAdUnitConfig() throws IllegalAccessException {
+        bannerView.setAdUnitFormats(EnumSet.of(AdUnitFormat.BANNER, AdUnitFormat.VIDEO));
+        VideoParameters videoParameters = new VideoParameters(Collections.singletonList("video/mp4"));
+        videoParameters.setMaxDuration(30);
+
+        bannerView.setVideoParameters(videoParameters);
+
+        assertSame(videoParameters, bannerView.getVideoParameters());
+        assertSame(videoParameters, getAdUnitConfig().getVideoParameters());
+        assertEquals(EnumSet.of(AdFormat.BANNER, AdFormat.VAST), getAdUnitConfig().getAdFormats());
+    }
+
+    @Test
+    public void setVideoParameters_null_clearsValue() throws IllegalAccessException {
+        bannerView.setVideoParameters(new VideoParameters(Collections.singletonList("video/mp4")));
+
+        bannerView.setVideoParameters(null);
+
+        assertNull(bannerView.getVideoParameters());
+        assertNull(getAdUnitConfig().getVideoParameters());
+    }
+
+    @Test
+    public void getVideoParameters_default_isNull() {
+        assertNull(bannerView.getVideoParameters());
     }
 
     @Test
